@@ -1,0 +1,102 @@
+kind: Namespace
+apiVersion: v1
+metadata:
+  name: ns1
+---
+kind: Vpc
+apiVersion: kubeovn.io/v1
+metadata:
+  name: test-vpc-1
+spec:
+  namespaces:
+  - ns1
+---
+kind: Subnet
+apiVersion: kubeovn.io/v1
+metadata:
+  name: net1
+spec:
+  vpc: test-vpc-1
+  cidrBlock: 10.0.1.0/24
+  gateway: 10.0.1.1
+  provider: net1.ns1.ovn
+  protocol: IPv4
+  namespaces:
+    - ns1
+---
+apiVersion: "k8s.cni.cncf.io/v1"
+kind: NetworkAttachmentDefinition
+metadata:
+  name: net1
+  namespace: ns1
+spec:
+  config: '{
+      "cniVersion": "0.3.0",
+      "type": "kube-ovn",
+      "server_socket": "/run/openvswitch/kube-ovn-daemon.sock",
+      "provider": "net1.ns1.ovn"
+    }'
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  namespace: ns1
+  name: vpc1-pod
+  annotations:
+    k8s.v1.cni.cncf.io/networks: ns1/net1
+spec:
+  containers:
+    - name: vpc1-pod
+      image: docker.io/library/nginx:alpine
+---
+kind: Namespace
+apiVersion: v1
+metadata:
+  name: ns2
+---
+kind: Vpc
+apiVersion: kubeovn.io/v1
+metadata:
+  name: test-vpc-2
+spec:
+  namespaces:
+  - ns2
+---
+kind: Subnet
+apiVersion: kubeovn.io/v1
+metadata:
+  name: net2
+spec:
+  vpc: test-vpc-2
+  cidrBlock: 10.0.1.0/24
+  gateway: 10.0.1.1
+  provider: net1.ns2.ovn
+  protocol: IPv4
+  namespaces:
+    - ns2
+---
+apiVersion: "k8s.cni.cncf.io/v1"
+kind: NetworkAttachmentDefinition
+metadata:
+  name: net2
+  namespace: ns2
+spec:
+  config: '{
+      "cniVersion": "0.3.0",
+      "type": "kube-ovn",
+      "server_socket": "/run/openvswitch/kube-ovn-daemon.sock",
+      "provider": "net2.ns2.ovn"
+    }'
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  namespace: ns2
+  name: vpc2-pod
+  annotations:
+    k8s.v1.cni.cncf.io/networks: ns2/net2
+spec:
+  containers:
+    - name: vpc2-pod
+      image: docker.io/library/nginx:alpine
+---          
